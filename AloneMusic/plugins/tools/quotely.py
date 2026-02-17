@@ -1,6 +1,6 @@
 from pyrogram import filters
 from pyrogram.types import Message
-from Alonemusic import app
+from AloneMusic import app
 
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
