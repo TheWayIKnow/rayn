@@ -1,4 +1,3 @@
-import random
 import time
 
 from py_yt import VideosSearch
@@ -25,22 +24,14 @@ from config import BANNED_USERS
 from strings import get_string
 
 
-# 🎬 Message Effects
-EFFECT_ID = [
-    5046509860389126442,
-    5107584321108051014,
-    5104841245755180586,
-    5159385139981059251,
-]
-
-# 🔥 PREMIUM START TEMPLATE (Channel Copy Method)
-PREMIUM_START_CHANNEL = config.START_CHANNEL_ID   # -100xxxxxxxxxx
-PREMIUM_START_MSG_ID = config.START_MESSAGE_ID    # Message ID of premium start
+# 🔥 PREMIUM START (Channel Copy Method)
+PREMIUM_START_CHANNEL = config.START_CHANNEL_ID
+PREMIUM_START_MSG_ID = config.START_MESSAGE_ID
 
 
-# ==============================
+# =================================================
 # PRIVATE START
-# ==============================
+# =================================================
 
 @app.on_message(filters.command(["start"]) & filters.private & ~BANNED_USERS)
 @LanguageStart
@@ -48,6 +39,8 @@ async def start_pm(client, message: Message, _):
 
     await add_served_user(message.from_user.id)
     await message.react("🍓")
+
+    # ================= PARAM HANDLING =================
 
     if len(message.text.split()) > 1:
         param = message.text.split(None, 1)[1]
@@ -65,23 +58,16 @@ async def start_pm(client, message: Message, _):
         # SUDO LIST
         if param.startswith("sud"):
             await sudoers_list(client=client, message=message, _=_)
-            if await is_on_off(2):
-                await app.send_message(
-                    chat_id=config.LOGGER_ID,
-                    text=(
-                        f"{message.from_user.mention} checked <b>SUDOLIST</b>\n\n"
-                        f"<b>User ID:</b> <code>{message.from_user.id}</code>\n"
-                        f"<b>Username:</b> @{message.from_user.username}"
-                    ),
-                )
             return
 
         # TRACK INFO
         if param.startswith("inf"):
-            m = await message.reply_text("🔎")
+            m = await message.reply_text("🔎 Searching...")
+
             query = param.replace("info_", "", 1)
             results = VideosSearch(
-                f"https://www.youtube.com/watch?v={query}", limit=1
+                f"https://www.youtube.com/watch?v={query}",
+                limit=1,
             )
             data = (await results.next())["result"][0]
 
@@ -110,7 +96,7 @@ async def start_pm(client, message: Message, _):
 
             await m.delete()
 
-            await app.send_photo(
+            return await app.send_photo(
                 chat_id=message.chat.id,
                 photo=data["thumbnails"][0]["url"].split("?")[0],
                 has_spoiler=True,
@@ -118,22 +104,15 @@ async def start_pm(client, message: Message, _):
                 reply_markup=buttons,
             )
 
-            if await is_on_off(2):
-                await app.send_message(
-                    chat_id=config.LOGGER_ID,
-                    text=f"{message.from_user.mention} checked track info.",
-                )
-            return
+    # ================= DEFAULT PREMIUM START =================
 
-    # 🔥 DEFAULT PREMIUM START (NO OFFSET HEADACHE)
-    out = private_panel(_)
+    buttons = InlineKeyboardMarkup(private_panel(_))
 
     await app.copy_message(
         chat_id=message.chat.id,
         from_chat_id=PREMIUM_START_CHANNEL,
         message_id=PREMIUM_START_MSG_ID,
-        reply_markup=InlineKeyboardMarkup(out),
-        message_effect_id=random.choice(EFFECT_ID),
+        reply_markup=buttons,
     )
 
     if await is_on_off(2):
@@ -147,30 +126,30 @@ async def start_pm(client, message: Message, _):
         )
 
 
-# ==============================
+# =================================================
 # GROUP START
-# ==============================
+# =================================================
 
 @app.on_message(filters.command(["start"]) & filters.group & ~BANNED_USERS)
 @LanguageStart
 async def start_gp(client, message: Message, _):
 
-    out = start_panel(_)
     uptime = int(time.time() - _boot_)
+    buttons = InlineKeyboardMarkup(start_panel(_))
 
     await message.reply_photo(
         photo=config.START_IMG_URL,
         has_spoiler=True,
         caption=_["start_1"].format(app.mention, get_readable_time(uptime)),
-        reply_markup=InlineKeyboardMarkup(out),
+        reply_markup=buttons,
     )
 
     await add_served_chat(message.chat.id)
 
 
-# ==============================
+# =================================================
 # WELCOME HANDLER
-# ==============================
+# =================================================
 
 @app.on_message(filters.new_chat_members, group=-1)
 async def welcome(client, message: Message):
@@ -180,7 +159,7 @@ async def welcome(client, message: Message):
             language = await get_lang(message.chat.id)
             _ = get_string(language)
 
-            # Ban if user banned
+            # Ban if banned user joins
             if await is_banned_user(member.id):
                 try:
                     await message.chat.ban_member(member.id)
@@ -205,7 +184,7 @@ async def welcome(client, message: Message):
                     )
                     return await app.leave_chat(message.chat.id)
 
-                out = start_panel(_)
+                buttons = InlineKeyboardMarkup(start_panel(_))
 
                 await message.reply_photo(
                     photo=config.START_IMG_URL,
@@ -216,7 +195,7 @@ async def welcome(client, message: Message):
                         message.chat.title,
                         app.mention,
                     ),
-                    reply_markup=InlineKeyboardMarkup(out),
+                    reply_markup=buttons,
                 )
 
                 await add_served_chat(message.chat.id)
